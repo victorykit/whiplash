@@ -135,7 +135,7 @@ module Whiplash
       prefix = "whiplash/#{t}/"
       suffix = "/spins"
       Whiplash.redis.keys(prefix + "*" + suffix).each do |o|
-        tests[t][:options].append o[prefix.length..-suffix.length-1]
+        tests[t][:options] << [prefix.length..-suffix.length-1]
       end
     end
     tests

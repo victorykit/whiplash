@@ -19,5 +19,7 @@ Gem::Specification.new do |gem|
   gem.add_dependency "redis"
   gem.add_dependency "redis-namespace"
   gem.add_dependency "simple-random"
+  gem.add_dependency "sinatra"
+  gem.add_dependency "haml"
   gem.add_development_dependency "rspec", ">= 2.0.0"
 end
