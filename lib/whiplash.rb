@@ -59,17 +59,9 @@ module Whiplash
     ] }
     loptions
   end
-
-  def redis_nonce(mysession)
-    # force creation of a session_id
-    mysession[:tmp] = 1
-    mysession.delete(:tmp)
-    sessionid = mysession[:session_id] || request.session_options[:id]
-    return "#{sessionid}_#{Random.rand}"
-  end
   
   def spin_for_choice(test_name, choice, mysession=nil)
-    data = {type: "spin", when: Time.now.to_f, nonce: redis_nonce(mysession), test: test_name, choice: choice}
+    data = {type: "spin", when: Time.now.to_f, test: test_name, choice: choice}
     Whiplash.log data.to_json
     Whiplash.redis.incr("whiplash/#{test_name}/#{choice}/spins")
     mysession[test_name] = choice
@@ -103,7 +95,7 @@ module Whiplash
   def win_on_option!(test_name, choice, mysession=nil)
     return if choice.nil?
     mysession ||= session
-    data = {type: "win", when: Time.now.to_f, nonce: redis_nonce(mysession), test: test_name, choice: choice}
+    data = {type: "win", when: Time.now.to_f, test: test_name, choice: choice}
     Whiplash.log data.to_json
     Whiplash.redis.incr("whiplash/#{test_name}/#{choice}/wins")
   end
@@ -111,7 +103,7 @@ module Whiplash
   def lose_on_option!(test_name, choice, mysession=nil)
     return if choice.nil?
     mysession ||= session
-    data = {type: "lose", when: Time.now.to_f, nonce: redis_nonce(mysession), test: test_name, choice: choice}
+    data = {type: "lose", when: Time.now.to_f, test: test_name, choice: choice}
     Whiplash.log data.to_json
     Whiplash.redis.decr("whiplash/#{test_name}/#{choice}/wins")
   end
