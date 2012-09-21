@@ -40,7 +40,14 @@ describe Whiplash do
     lose_on_option!("spec whiplash layout", nil, website_session)
   end
 
-  pending "should not incr redis if only one option"
+  it "should not incr redis if only one option" do
+    session = {session_id: "x"}
+    test_name = "arbitrary test name"
+    
+    Whiplash.redis.set("whiplash/#{test_name}/a/spins", 0)
+    spin! test_name, :arbitrary_goal, ["a"], session
+    Whiplash.redis.get("whiplash/#{test_name}/a/spins").should == 0
+  end
   
   it "should spin and win" do
     session = {session_id: "x"}
