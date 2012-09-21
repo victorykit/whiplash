@@ -3,7 +3,7 @@ require 'spec_helper'
 describe Whiplash do
   include Whiplash
 
-  before(:all) { Whiplash.redis = FakeRedis.new }
+  before(:all) { Whiplash.redis = Whiplash::FakeRedis.new }
 
   it "should guess floats" do
     arm_guess(0, 0).class.should == Float
@@ -40,18 +40,16 @@ describe Whiplash do
     lose_on_option!("spec whiplash layout", nil, website_session)
   end
 
-  # can't test this because it's mocked out...
-  it "should not incr redis if only one option" do
-  end
+  pending "should not incr redis if only one option"
   
-  # can't test this because it's mocked out...
-  # it "should spin and win" do
-  #   session = {session_id: "x"}
-  #   test_name = "__test__whiplash_spec.rb"
-  #   Whiplash.redis.del("whiplash/#{test_name}/true/spins")
-  #   spin!(test_name, "__test__test", [true], session).should == true
-  #   Whiplash.redis.get("whiplash/#{test_name}/true/spins").to_i.should == 1
-  #   win!(:__test__name, session)
-  #   Whiplash.redis.get("whiplash/#{test_name}/true/wins").to_i.should == 1
-  # end
+  it "should spin and win" do
+    session = {session_id: "x"}
+    test_name = "arbitrary test name"
+    Whiplash.redis.del("whiplash/#{test_name}/true/spins")
+    choice = spin!(test_name, :arbitrary_goal, [true, false], session)
+    [true, false].should include choice
+    Whiplash.redis.get("whiplash/#{test_name}/#{choice}/spins").to_i.should == 1
+    win!(:arbitrary_goal, session)
+    Whiplash.redis.get("whiplash/#{test_name}/#{choice}/wins").to_i.should == 1
+  end
 end

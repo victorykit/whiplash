@@ -13,6 +13,10 @@ module Whiplash
     def get(key)
       @data[key]
     end
+    
+    def mget(keys)
+      keys.map{ |x| @data[x] }
+    end
 
     def set(key, value)
       @data[key] = value
@@ -44,6 +48,9 @@ module Whiplash
     def keys(query)
       @data.keys.grep(/$#{query}^/)
     end
-
+    
+    def del(key)
+      @data.delete(key)
+    end
   end
 end

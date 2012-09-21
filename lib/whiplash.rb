@@ -52,12 +52,9 @@ module Whiplash
   end
   
   def data_for_options(test_name, options)
-    loptions = {}
-    options.each { |o| loptions[o] = [
-      Whiplash.redis.get("whiplash/#{test_name}/#{o}/spins").to_i,
-      Whiplash.redis.get("whiplash/#{test_name}/#{o}/wins").to_i
-    ] }
-    loptions
+    keys = options.map {|o| %w{ whiplash/#{test_name}/#{o}/spins whiplash/#{test_name}/#{o}/wins } }.flatten
+    values = Whiplash.redis.mget(keys).map(&:to_i).each_slice(2)
+    Hash[options.zip(values)]
   end
   
   def spin_for_choice(test_name, choice, mysession=nil)
