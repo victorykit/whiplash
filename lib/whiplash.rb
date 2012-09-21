@@ -52,7 +52,7 @@ module Whiplash
   end
   
   def data_for_options(test_name, options)
-    keys = options.map {|o| %w{ whiplash/#{test_name}/#{o}/spins whiplash/#{test_name}/#{o}/wins } }.flatten
+    keys = options.map {|o| ["whiplash/#{test_name}/#{o}/spins", "whiplash/#{test_name}/#{o}/wins"] }.flatten
     values = Whiplash.redis.mget(keys).map(&:to_i).each_slice(2)
     Hash[options.zip(values)]
   end

@@ -52,4 +52,20 @@ describe Whiplash do
     win!(:arbitrary_goal, session)
     Whiplash.redis.get("whiplash/#{test_name}/#{choice}/wins").to_i.should == 1
   end
+  
+  it "should pick the best" do
+    test_name = "arbitrary test"
+    Whiplash.redis.set("whiplash/#{test_name}/a/spins", 100000000)
+    Whiplash.redis.set("whiplash/#{test_name}/a/wins", 100000000)
+    Whiplash.redis.set("whiplash/#{test_name}/b/spins", 100000000)
+    Whiplash.redis.set("whiplash/#{test_name}/b/wins", 0)
+    
+    results = Hash.new(0)
+    1000.times do
+      session = {session_id: "x"}
+      results[spin!(test_name, :arbitrary_goal, ["a", "b"], session)] += 1
+    end
+    
+    results["a"].should be > (results["b"] + 100)
+  end
 end
