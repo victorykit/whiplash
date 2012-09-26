@@ -3,6 +3,9 @@ require 'spec_helper'
 describe Whiplash do
   include Whiplash
 
+  def Whiplash.log s
+  end
+
   before(:all) { Whiplash.redis = Whiplash::FakeRedis.new }
   let(:session) { {session_id: "x"} }
 
@@ -43,12 +46,12 @@ describe Whiplash do
 
   it "should not incr redis if only one option" do
     test_name = "arbitrary test name"
-    
+
     Whiplash.redis.set("whiplash/#{test_name}/a/spins", 0)
     spin! test_name, :arbitrary_goal, ["a"]
     Whiplash.redis.get("whiplash/#{test_name}/a/spins").should == 0
   end
-  
+
   it "should spin and win" do
     test_name = "arbitrary test name"
     Whiplash.redis.del("whiplash/#{test_name}/true/spins")
@@ -58,19 +61,19 @@ describe Whiplash do
     win!(:arbitrary_goal)
     Whiplash.redis.get("whiplash/#{test_name}/#{choice}/wins").to_i.should == 1
   end
-  
+
   it "should pick the best" do
     test_name = "arbitrary test"
     Whiplash.redis.set("whiplash/#{test_name}/a/spins", 100000000)
     Whiplash.redis.set("whiplash/#{test_name}/a/wins", 100000000)
     Whiplash.redis.set("whiplash/#{test_name}/b/spins", 100000000)
     Whiplash.redis.set("whiplash/#{test_name}/b/wins", 0)
-    
+
     results = Hash.new(0)
     1000.times do
       results[spin!(test_name, :arbitrary_goal, ["a", "b"])] += 1
     end
-    
+
     results["a"].should be > (results["b"] + 100)
   end
 
