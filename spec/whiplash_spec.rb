@@ -3,8 +3,7 @@ require 'spec_helper'
 describe Whiplash do
   include Whiplash
 
-  def Whiplash.log s
-  end
+  def Whiplash.log(*args); end
 
   before(:all) { Whiplash.redis = Whiplash::FakeRedis.new }
   let(:session) { {session_id: "x"} }

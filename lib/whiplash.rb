@@ -7,34 +7,45 @@ require 'json'
 module Whiplash
   FAIRNESS_CONSTANT7 = FC7 = 2
 
-  # Accepts:
-  #   1. A 'hostname:port' String
-  #   2. A 'hostname:port:db' String (to select the Redis db)
-  #   4. A Redis URL String 'redis://host:port'
-  #   5. An instance of `Redis`, or `Redis::Client`
-  def self.redis=(server)
-    case server
-    when String
-      if server =~ /redis\:\/\//
-        redis = Redis.connect(:url => server, :thread_safe => true)
+  class << self
+    # Accepts:
+    #   1. A 'hostname:port' String
+    #   2. A 'hostname:port:db' String (to select the Redis db)
+    #   4. A Redis URL String 'redis://host:port'
+    #   5. An instance of `Redis`, or `Redis::Client`
+    def redis=(server)
+      case server
+      when String
+        if server =~ /redis\:\/\//
+          redis = Redis.connect(:url => server, :thread_safe => true)
+        else
+          server, namespace = server.split('/', 2)
+          host, port, db = server.split(':')
+          redis = Redis.new(host: host, port: port, thread_safe: true, db: db)
+        end
+
+        @redis = redis
       else
-        server, namespace = server.split('/', 2)
-        host, port, db = server.split(':')
-        redis = Redis.new(host: host, port: port, thread_safe: true, db: db)
+        @redis = server
       end
-
-      @redis = redis
-    else
-      @redis = server
     end
-  end
 
-  # Returns the current Redis connection. If none has been created, will
-  # create a new one.
-  def self.redis
-    return @redis if @redis
-    self.redis = Redis.respond_to?(:connect) ? Redis.connect : "localhost:6379"
-    self.redis
+    # Returns the current Redis connection. If none has been created, will
+    # create a new one.
+    def redis
+      return @redis if @redis
+      self.redis = Redis.respond_to?(:connect) ? Redis.connect : "localhost:6379"
+      self.redis
+    end
+
+    def log(message)
+      message = "[whiplash] #{message}"
+      if defined?(Rails)
+        Rails.logger.info message
+      else
+        puts message
+      end
+    end
   end
 
   def arm_guess(observations, victories)
@@ -121,16 +132,16 @@ module Whiplash
   end
 
   def all_tests
-    test_names = Whiplash.redis.keys('whiplash/goals/*').inject([]) do |list, goal_name|
-      list + Whiplash.redis.smembers(goal_name).map { |test_name| [ test_name, goal_name[15..-1].to_sym ] }
+    goals_pattern = 'whiplash/goals/*'
+    test_names = Whiplash.redis.keys(goals_pattern).inject([]) do |list, goal_name|
+      list + Whiplash.redis.smembers(goal_name).map { |test_name| [ test_name, goal_name[goals_pattern.length-1..-1].to_sym ] }
     end
 
     test_names.map do |test_name, goal_name|
-      prefix = "whiplash/#{test_name}/"
-      suffix = "/spins"
-      term = prefix + "*" + suffix
+      prefix, suffix = "whiplash/#{test_name}/", "/spins"
+      spins_pattern = prefix + "*" + suffix
 
-      options = Whiplash.redis.keys(term).map do |option|
+      options = Whiplash.redis.keys(spins_pattern).map do |option|
         option[prefix.length..-suffix.length-1]
       end
 
@@ -148,15 +159,6 @@ module Whiplash
       trials = arms.inject(0) {|memo, arm| memo + arm[:spins]}
 
       { name: test_name, goal: goal_name, options: options, trials: trials, arms: arms }
-    end
-  end
-
-  def self.log(message)
-    message = "[whiplash] #{message}"
-    if defined?(Rails)
-      Rails.logger.info message
-    else
-      puts message
     end
   end
 
