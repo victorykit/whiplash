@@ -42,7 +42,7 @@ module Whiplash
     b = [observations-victories, 0].max
     s = SimpleRandom.new; s.set_seed; s.beta(a+FC7, b+FC7)
   end
-  
+
   def best_guess(options)
     guesses = {}
     options.each { |o, v| guesses[o] = arm_guess(v[0], v[1]) }
@@ -50,7 +50,7 @@ module Whiplash
     best = options.keys.select { |o| guesses[o] ==  gmax }
     return best.sample
   end
-  
+
   def data_for_options(test_name, options)
     keys = options.map {|o| ["whiplash/#{test_name}/#{o}/spins", "whiplash/#{test_name}/#{o}/wins"] }.flatten
     values = Whiplash.redis.mget(keys).map(&:to_i).each_slice(2)
@@ -64,7 +64,7 @@ module Whiplash
     sessionid = mysession[:session_id] || request.session_options[:id]
     return "#{sessionid}_#{Random.rand}"
   end
-  
+
   def spin_for_choice(test_name, choice, mysession=nil)
     data = {type: "spin", when: Time.now.to_f, nonce: redis_nonce(mysession), test: test_name, choice: choice}
     Whiplash.log data.to_json
@@ -78,7 +78,7 @@ module Whiplash
     if mysession.key?(test_name) && options.include?(mysession[test_name])
       return mysession[test_name]
     end
-    
+
     choice = options.sample
     return spin_for_choice(test_name, choice, mysession)
   end
@@ -89,7 +89,7 @@ module Whiplash
     if mysession.key?(test_name) && (options.include?(mysession[test_name]) || mysession.key?("manual_whiplash_mode"))
       return mysession[test_name]
     end
-    
+
     return options.first if options.count == 1
 
     Whiplash.redis.sadd("whiplash/goals/#{goal}", test_name)
@@ -149,11 +149,6 @@ module Whiplash
 
       { name: test_name, goal: goal_name, options: options, trials: trials, arms: arms }
     end
-  end
-
-  def used_storage
-    max_redis_space = 104857600 # (100 MB)
-    Whiplash.redis.info["used_memory"].to_f / max_redis_space
   end
 
   def self.log(message)
