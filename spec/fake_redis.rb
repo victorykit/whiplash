@@ -1,4 +1,5 @@
 # Like Redis, but more fake.
+
 module Whiplash
   class FakeRedis
 
@@ -37,8 +38,9 @@ module Whiplash
     end
 
     def sadd(key, member)
-      list = get(key) || []
-      set key, ( list << member ).uniq
+      found_set = get(key) || []
+      found_set << member
+      set key, found_set.uniq
     end
 
     def smembers(key)
@@ -46,7 +48,8 @@ module Whiplash
     end
 
     def keys(query)
-      @data.keys.grep(/$#{query}^/)
+      exp = Regexp.new(query.gsub("*", ".*"))
+      @data.keys.grep exp
     end
     
     def del(key)

@@ -4,6 +4,7 @@ describe Whiplash do
   include Whiplash
 
   before(:all) { Whiplash.redis = Whiplash::FakeRedis.new }
+  let(:session) { {session_id: "x"} }
 
   it "should guess floats" do
     arm_guess(0, 0).class.should == Float
@@ -41,22 +42,20 @@ describe Whiplash do
   end
 
   it "should not incr redis if only one option" do
-    session = {session_id: "x"}
     test_name = "arbitrary test name"
     
     Whiplash.redis.set("whiplash/#{test_name}/a/spins", 0)
-    spin! test_name, :arbitrary_goal, ["a"], session
+    spin! test_name, :arbitrary_goal, ["a"]
     Whiplash.redis.get("whiplash/#{test_name}/a/spins").should == 0
   end
   
   it "should spin and win" do
-    session = {session_id: "x"}
     test_name = "arbitrary test name"
     Whiplash.redis.del("whiplash/#{test_name}/true/spins")
-    choice = spin!(test_name, :arbitrary_goal, [true, false], session)
+    choice = spin!(test_name, :arbitrary_goal, [true, false])
     [true, false].should include choice
     Whiplash.redis.get("whiplash/#{test_name}/#{choice}/spins").to_i.should == 1
-    win!(:arbitrary_goal, session)
+    win!(:arbitrary_goal)
     Whiplash.redis.get("whiplash/#{test_name}/#{choice}/wins").to_i.should == 1
   end
   
@@ -69,10 +68,29 @@ describe Whiplash do
     
     results = Hash.new(0)
     1000.times do
-      session = {session_id: "x"}
-      results[spin!(test_name, :arbitrary_goal, ["a", "b"], session)] += 1
+      results[spin!(test_name, :arbitrary_goal, ["a", "b"])] += 1
     end
     
     results["a"].should be > (results["b"] + 100)
+  end
+
+  it "should compose all_tests data" do
+    spin!("different colored dingoes", :pet_me, ["red", "brown"])
+    spin!("different looking dingoes", :love_me, ["big eyes", "long lashes"])
+    win!(:pet_me)
+
+    test = all_tests.find { |t| t[:name] == "different colored dingoes"}
+    ["red", "brown"].should include test[:options].first
+    test[:goal].should == :pet_me
+    test[:arms].first[:spins].should == 1
+    test[:arms].first[:wins].should == 1
+    test[:trials].should == 1
+
+    test = all_tests.find { |t| t[:name] == "different looking dingoes"}
+    ["big eyes", "long lashes"].should include test[:options].first
+    test[:goal].should == :love_me
+    test[:arms].first[:spins].should == 1
+    test[:arms].first[:wins].should == 0
+    test[:trials].should == 1
   end
 end

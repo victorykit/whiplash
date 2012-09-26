@@ -121,29 +121,34 @@ module Whiplash
   end
 
   def all_tests
-    tests = {}
-    Whiplash.redis.keys('whiplash/goals/*').each do |g|
-      Whiplash.redis.smembers(g).each do |t|
-        tests[t] = {goal: g[15..-1], options: []}
-      end
+    test_names = Whiplash.redis.keys('whiplash/goals/*').inject([]) do |list, goal_name|
+      list + Whiplash.redis.smembers(goal_name).map { |test_name| [ test_name, goal_name[15..-1].to_sym ] }
     end
 
-    tests.keys.each do |t|
-      prefix = "whiplash/#{t}/"
+    test_names.map do |test_name, goal_name|
+      prefix = "whiplash/#{test_name}/"
       suffix = "/spins"
-      Whiplash.redis.keys(prefix + "*" + suffix).each do |o|
-        tests[t][:options] << o[prefix.length..-suffix.length-1]
+      term = prefix + "*" + suffix
+
+      options = Whiplash.redis.keys(term).map do |option|
+        option[prefix.length..-suffix.length-1]
       end
+
+      test_spins = spins_for_all_options(test_name, options)
+      test_wins = wins_for_all_options(test_name, options)
+
+      arms = options.map do |opt_name|
+        {
+          name: opt_name,
+          spins: test_spins[opt_name],
+          wins: test_wins[opt_name]
+        }
+      end.sort_by { |arm| arm[:name] }
+
+      trials = arms.inject(0) {|memo, arm| memo + arm[:spins]}
+
+      { name: test_name, goal: goal_name, options: options, trials: trials, arms: arms }
     end
-    tests
-  end
-
-  def spins_for test_name, opt_name
-    Whiplash.redis.get("whiplash/#{test_name}/#{opt_name}/spins").to_i
-  end
-
-  def wins_for test_name, opt_name
-    Whiplash.redis.get("whiplash/#{test_name}/#{opt_name}/wins").to_i
   end
 
   def used_storage
@@ -159,4 +164,19 @@ module Whiplash
       puts message
     end
   end
+
+  private
+
+  def spins_for_all_options test_name, opt_names
+    spin_keys = opt_names.collect{|opt| "whiplash/#{test_name}/#{opt}/spins"}
+    spins = Whiplash.redis.mget(spin_keys).collect &:to_i
+    Hash[opt_names.zip(spins)]
+  end
+
+  def wins_for_all_options test_name, opt_names
+    win_keys = opt_names.collect{|opt| "whiplash/#{test_name}/#{opt}/wins"}
+    wins = Whiplash.redis.mget(win_keys).collect &:to_i
+    Hash[opt_names.zip(wins)]
+  end
+
 end
