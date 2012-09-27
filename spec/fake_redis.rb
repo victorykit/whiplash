@@ -14,8 +14,9 @@ module Whiplash
     def get(key)
       @data[key]
     end
-    
+
     def mget(keys)
+      raise "ERR wrong number of arguments for 'mget' command" if keys.empty?
       keys.map{ |x| @data[x] }
     end
 
@@ -51,7 +52,7 @@ module Whiplash
       exp = Regexp.new(query.gsub("*", ".*"))
       @data.keys.grep exp
     end
-    
+
     def del(key)
       @data.delete(key)
     end

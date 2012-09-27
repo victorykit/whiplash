@@ -99,4 +99,16 @@ describe Whiplash do
   it "should return an empty list of stats if there is no data" do
     all_tests.should be_empty
   end
+
+  it "should return tests with empty wins when nothing won" do
+    spin!("different colored dingoes", :pet_me, ["red", "brown"])
+    spin!("different looking dingoes", :love_me, ["big eyes", "long lashes"])
+
+    test = all_tests.find { |t| t[:name] == "different colored dingoes"}
+    test[:goal].should == :pet_me
+    ["brown", "red"].should include test[:arms].first[:name]
+    test[:arms].first[:spins].should == 1
+    test[:arms].first[:wins].should == 0
+    test[:trials].should == 1
+  end
 end

@@ -42,11 +42,14 @@ module Whiplash
     end
 
     def reindex_by_first_key_part keys_pattern, keys_to_values_pattern
+      destination_hash = Hash.new{|h, k| h[k] = []}
       keys = Whiplash.redis.keys(keys_pattern)
+      return destination_hash if keys.empty?
+
       values = Whiplash.redis.mget(keys)
       key_parts = keys.map { |k| k.match(keys_to_values_pattern).captures }
       rows = key_parts.zip(values).map(&:flatten)
-      rows.inject(Hash.new{|h, k| h[k] = []}) { |h, row| h[row[0]] << row.slice(1..-1); h }
+      rows.inject(destination_hash) { |h, row| h[row[0]] << row.slice(1..-1); h }
     end
   end
 end
