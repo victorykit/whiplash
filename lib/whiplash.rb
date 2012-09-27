@@ -1,4 +1,5 @@
 require 'whiplash/version'
+require 'whiplash/stats'
 require 'simple-random'
 require 'redis'
 require 'redis-namespace'
@@ -132,48 +133,6 @@ module Whiplash
   end
 
   def all_tests
-    goals_pattern = 'whiplash/goals/*'
-    test_names = Whiplash.redis.keys(goals_pattern).inject([]) do |list, goal_name|
-      list + Whiplash.redis.smembers(goal_name).map { |test_name| [ test_name, goal_name[goals_pattern.length-1..-1].to_sym ] }
-    end
-
-    test_names.map do |test_name, goal_name|
-      prefix, suffix = "whiplash/#{test_name}/", "/spins"
-      spins_pattern = prefix + "*" + suffix
-
-      options = Whiplash.redis.keys(spins_pattern).map do |option|
-        option[prefix.length..-suffix.length-1]
-      end
-
-      test_spins = spins_for_all_options(test_name, options)
-      test_wins = wins_for_all_options(test_name, options)
-
-      arms = options.map do |opt_name|
-        {
-          name: opt_name,
-          spins: test_spins[opt_name],
-          wins: test_wins[opt_name]
-        }
-      end.sort_by { |arm| arm[:name] }
-
-      trials = arms.inject(0) {|memo, arm| memo + arm[:spins]}
-
-      { name: test_name, goal: goal_name, options: options, trials: trials, arms: arms }
-    end
+    Whiplash::Stats.new.all_tests
   end
-
-  private
-
-  def spins_for_all_options test_name, opt_names
-    spin_keys = opt_names.collect{|opt| "whiplash/#{test_name}/#{opt}/spins"}
-    spins = Whiplash.redis.mget(spin_keys).collect &:to_i
-    Hash[opt_names.zip(spins)]
-  end
-
-  def wins_for_all_options test_name, opt_names
-    win_keys = opt_names.collect{|opt| "whiplash/#{test_name}/#{opt}/wins"}
-    wins = Whiplash.redis.mget(win_keys).collect &:to_i
-    Hash[opt_names.zip(wins)]
-  end
-
 end

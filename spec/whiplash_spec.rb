@@ -5,7 +5,7 @@ describe Whiplash do
 
   def Whiplash.log(*args); end
 
-  before(:all) { Whiplash.redis = Whiplash::FakeRedis.new }
+  before(:each) { Whiplash.redis = Whiplash::FakeRedis.new }
   let(:session) { {session_id: "x"} }
 
   it "should guess floats" do
@@ -82,17 +82,21 @@ describe Whiplash do
     win!(:pet_me)
 
     test = all_tests.find { |t| t[:name] == "different colored dingoes"}
-    ["red", "brown"].should include test[:options].first
     test[:goal].should == :pet_me
+    ["brown", "red"].should include test[:arms].first[:name]
     test[:arms].first[:spins].should == 1
     test[:arms].first[:wins].should == 1
     test[:trials].should == 1
 
     test = all_tests.find { |t| t[:name] == "different looking dingoes"}
-    ["big eyes", "long lashes"].should include test[:options].first
     test[:goal].should == :love_me
+    ["big eyes", "long lashes"].should include test[:arms].first[:name]
     test[:arms].first[:spins].should == 1
     test[:arms].first[:wins].should == 0
     test[:trials].should == 1
+  end
+
+  it "should return an empty list of stats if there is no data" do
+    all_tests.should be_empty
   end
 end
