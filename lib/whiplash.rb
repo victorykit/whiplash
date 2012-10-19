@@ -85,17 +85,11 @@ module Whiplash
     return choice
   end
 
-  def measure!(test_name, options=[true, false], mysession=nil)
-    mysession ||= session
-    if mysession.key?(test_name) && options.include?(mysession[test_name])
-      return mysession[test_name]
-    end
-
-    choice = options.sample
-    return spin_for_choice(test_name, choice, mysession)
+  def measure!(test_name, goal, options=[true, false], mysession=nil)
+    return spin!(test_name, goal, options, mysession, true)
   end
 
-  def spin!(test_name, goal, options=[true, false], mysession=nil)
+  def spin!(test_name, goal, options=[true, false], mysession=nil, measure=false)
     mysession ||= session
     #manual_whiplash_mode allows to set new options using /whiplash_sessions page
     if mysession.key?(test_name) && (options.include?(mysession[test_name]) || mysession.key?("manual_whiplash_mode"))
@@ -105,7 +99,11 @@ module Whiplash
     return options.first if options.count == 1
 
     Whiplash.redis.sadd("whiplash/goals/#{goal}", test_name)
-    choice = best_guess(data_for_options(test_name, options))
+    if measure
+      choice = options.sample
+    else
+      choice = best_guess(data_for_options(test_name, options))
+    end
     return spin_for_choice(test_name, choice, mysession)
   end
 
