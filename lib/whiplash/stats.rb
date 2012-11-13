@@ -28,7 +28,7 @@ module Whiplash
 
     def list_tests_and_goals
       goal_keys = Whiplash.redis.keys('whiplash/goals/*')
-      test_names = goal_keys.inject([]) do |list, goal_key|
+      goal_keys.inject([]) do |list, goal_key|
         test = Whiplash.redis.smembers(goal_key)
         goal_name = goal_key.match(/whiplash\/goals\/(.*)/)[1].to_sym
         list + test.map { |test_name| [ test_name, goal_name ] }
