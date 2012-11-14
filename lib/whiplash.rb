@@ -133,4 +133,11 @@ module Whiplash
   def all_tests
     Whiplash::Stats.new.all_tests
   end
+
+  def winning_option(test, options)
+    data_for_options(test, options).
+      each{ |k, v| v.map!(&:to_f) }.
+      max_by{ |k, v| v[1]/v[0] }.first
+  end
+
 end

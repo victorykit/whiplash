@@ -111,4 +111,15 @@ describe Whiplash do
     test[:arms].first[:wins].should == 0
     test[:trials].should == 1
   end
+
+  describe '#winning_option' do
+    before do 
+      Whiplash.redis.set('whiplash/color/red/spins', 10)
+      Whiplash.redis.set('whiplash/color/red/wins', 5)
+      Whiplash.redis.set('whiplash/color/blue/spins', 100)
+      Whiplash.redis.set('whiplash/color/blue/wins', 30)
+    end
+    specify { winning_option(:color, [:blue, :red]).should == :red }
+  end
+
 end
