@@ -113,13 +113,21 @@ describe Whiplash do
   end
 
   describe '#winning_option' do
-    before do 
+    it "chooses the option with the highest winning ratio" do
       Whiplash.redis.set('whiplash/color/red/spins', 10)
       Whiplash.redis.set('whiplash/color/red/wins', 5)
       Whiplash.redis.set('whiplash/color/blue/spins', 100)
       Whiplash.redis.set('whiplash/color/blue/wins', 30)
+
+      winning_option(:color, [:blue, :red]).should == :red
     end
-    specify { winning_option(:color, [:blue, :red]).should == :red }
+
+    it "does not fail when one of the options has never been spinned" do
+      Whiplash.redis.set('whiplash/color/red/spins', 2)
+      Whiplash.redis.set('whiplash/color/red/wins', 1)
+
+      winning_option(:color, [:blue, :red]).should == :red
+    end
   end
 
 end
