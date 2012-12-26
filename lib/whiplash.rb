@@ -99,6 +99,8 @@ module Whiplash
     return options.first if options.count == 1
 
     Whiplash.redis.sadd("whiplash/goals/#{goal}", test_name)
+
+    #p-value here somehow
     if measure
       choice = options.sample
     else
@@ -135,9 +137,18 @@ module Whiplash
   end
 
   def winning_option(test, options)
+    winning_options(test, options).first
+  end
+
+  def winning_options(test, options)
+    return options if options.size < 2
     data_for_options(test, options).
       each{ |k, v| v.map!(&:to_f) }.
-      max_by{ |k, v| v[0] > 0 ? v[1]/v[0] : 0.0 }.first
+      max_by{ |k, v| v[0] > 0 ? v[1]/v[0] : 0.0 }[0, 2]
+  end
+
+  def p_value(test, options)
+    Significance.(winning_options(test, options).map{|k, v| [v[1], v[0]-v[1]]})
   end
 
 end
